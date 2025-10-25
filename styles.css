@@ -1,0 +1,364 @@
+/* Omarchy Theme Colors */
+:root {
+    --bg: #1a1b26;
+    --fg: #a9b1d6;
+    --black: #32344a;
+    --red: #f7768e;
+    --green: #9ece6a;
+    --yellow: #e0af68;
+    --blue: #7aa2f7;
+    --magenta: #ad8ee6;
+    --cyan: #449dab;
+    --white: #787c99;
+    --bright-black: #444b6a;
+    --bright-white: #acb0d0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0d0e14;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.terminal-container {
+    width: 100%;
+    max-width: 1200px;
+    background: var(--bg);
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.terminal-header {
+    background: #16161e;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-bottom: 1px solid var(--black);
+}
+
+.terminal-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.btn-close {
+    background: var(--red);
+}
+
+.btn-minimize {
+    background: var(--yellow);
+}
+
+.btn-maximize {
+    background: var(--green);
+}
+
+.terminal-title {
+    color: var(--white);
+    font-size: 13px;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.terminal-body {
+    padding: 20px;
+    min-height: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--bg);
+}
+
+#output {
+    color: var(--fg);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.output-line {
+    margin: 2px 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.input-line {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.prompt {
+    color: var(--green);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+#input {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 14px;
+    caret-color: var(--fg);
+}
+
+/* Scrollbar styling */
+.terminal-body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.terminal-body::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+.terminal-body::-webkit-scrollbar-thumb {
+    background: var(--black);
+    border-radius: 5px;
+}
+
+.terminal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--bright-black);
+}
+
+/* Command output styling */
+.command-line {
+    color: var(--fg);
+    margin-bottom: 5px;
+}
+
+.command-line .prompt {
+    color: var(--green);
+}
+
+.command-line .command {
+    color: var(--fg);
+}
+
+.error {
+    color: var(--red);
+}
+
+.success {
+    color: var(--green);
+}
+
+.info {
+    color: var(--blue);
+}
+
+.warning {
+    color: var(--yellow);
+}
+
+.highlight {
+    color: var(--cyan);
+}
+
+.muted {
+    color: var(--white);
+}
+
+/* ASCII Art */
+.ascii-art {
+    color: var(--cyan);
+    line-height: 1.2;
+    font-size: 12px;
+}
+
+/* btop-style UI components */
+.btop-container {
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    padding: 10px;
+    margin: 10px 0;
+    background: rgba(122, 162, 247, 0.05);
+}
+
+.btop-header {
+    color: var(--blue);
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--bright-black);
+}
+
+.btop-row {
+    display: flex;
+    gap: 10px;
+    margin: 5px 0;
+}
+
+.btop-label {
+    color: var(--cyan);
+    min-width: 120px;
+}
+
+.btop-value {
+    color: var(--fg);
+}
+
+.btop-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btop-bar-fill {
+    height: 8px;
+    background: var(--green);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.btop-bar-container {
+    flex-grow: 1;
+    height: 8px;
+    background: var(--black);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.graph {
+    margin: 10px 0;
+    padding: 5px;
+}
+
+.graph-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 3px 0;
+}
+
+.graph-label {
+    color: var(--yellow);
+    min-width: 100px;
+    font-size: 12px;
+}
+
+.graph-bar-container {
+    flex-grow: 1;
+    height: 16px;
+    background: var(--black);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.graph-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 5px;
+}
+
+.graph-value {
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Links */
+a {
+    color: var(--blue);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--cyan);
+    text-decoration: underline;
+}
+
+/* Typing animation */
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.cursor {
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    background: var(--fg);
+    margin-left: 2px;
+    animation: blink 1s infinite;
+}
+
+/* Help command styling */
+.help-section {
+    margin: 15px 0;
+}
+
+.help-command {
+    color: var(--cyan);
+    font-weight: bold;
+}
+
+.help-description {
+    color: var(--white);
+    margin-left: 20px;
+    margin-bottom: 8px;
+}
+
+/* Section headers */
+.section-header {
+    color: var(--magenta);
+    font-size: 16px;
+    font-weight: bold;
+    margin: 15px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--magenta);
+}
+
+/* List styling */
+.list-item {
+    color: var(--fg);
+    margin-left: 20px;
+    margin-bottom: 5px;
+}
+
+.list-item::before {
+    content: "▸ ";
+    color: var(--green);
+}
+
+/* Intro animation */
+.intro-line {
+    color: var(--cyan);
+}
+
+.boot-text {
+    color: var(--green);
+}
+
+.boot-ok {
+    color: var(--green);
+}
+
+.boot-info {
+    color: var(--blue);
+}
