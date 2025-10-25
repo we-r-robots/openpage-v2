@@ -41,50 +41,46 @@ body {
 
 .terminal-header {
     background: #16161e;
-    padding: 10px 15px;
+    padding: 12px 20px;
     display: flex;
     align-items: center;
-    gap: 15px;
     border-bottom: 1px solid var(--black);
-}
-
-.terminal-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.btn {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.btn-close {
-    background: var(--red);
-}
-
-.btn-minimize {
-    background: var(--yellow);
-}
-
-.btn-maximize {
-    background: var(--green);
 }
 
 .terminal-title {
     color: var(--white);
     font-size: 13px;
-    flex-grow: 1;
-    text-align: center;
+    width: 100%;
+    text-align: left;
 }
 
 .terminal-body {
-    padding: 20px;
-    min-height: 600px;
-    max-height: 80vh;
-    overflow-y: auto;
+    padding: 0;
+    height: 700px;
+    overflow: hidden;
     background: var(--bg);
+    position: relative;
+}
+
+/* View Management */
+.view {
+    display: none;
+    height: 100%;
+    width: 100%;
+}
+
+.view.active {
+    display: block;
+}
+
+#welcome-view {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.page-view {
+    padding: 20px;
+    overflow-y: auto;
 }
 
 #output {
@@ -124,20 +120,20 @@ body {
 }
 
 /* Scrollbar styling */
-.terminal-body::-webkit-scrollbar {
+.view::-webkit-scrollbar {
     width: 10px;
 }
 
-.terminal-body::-webkit-scrollbar-track {
+.view::-webkit-scrollbar-track {
     background: var(--bg);
 }
 
-.terminal-body::-webkit-scrollbar-thumb {
+.view::-webkit-scrollbar-thumb {
     background: var(--black);
     border-radius: 5px;
 }
 
-.terminal-body::-webkit-scrollbar-thumb:hover {
+.view::-webkit-scrollbar-thumb:hover {
     background: var(--bright-black);
 }
 
@@ -361,4 +357,103 @@ a:hover {
 
 .boot-info {
     color: var(--blue);
+}
+
+/* Page header (btop-style) */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--blue);
+}
+
+.page-header-title {
+    color: var(--blue);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.page-header-hint {
+    color: var(--white);
+    font-size: 12px;
+}
+
+.page-header-hint .key {
+    color: var(--cyan);
+    font-weight: bold;
+}
+
+/* Page content sections */
+.page-section {
+    margin-bottom: 20px;
+}
+
+.page-section-title {
+    color: var(--magenta);
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    background: rgba(173, 142, 230, 0.1);
+    border-left: 3px solid var(--magenta);
+}
+
+/* Info grid */
+.info-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.info-label {
+    color: var(--cyan);
+    font-weight: bold;
+}
+
+.info-value {
+    color: var(--fg);
+}
+
+/* Project/Hobby cards */
+.card {
+    border: 1px solid var(--bright-black);
+    border-radius: 4px;
+    padding: 15px;
+    margin: 10px 0;
+    background: rgba(50, 52, 74, 0.3);
+    transition: border-color 0.3s;
+}
+
+.card:hover {
+    border-color: var(--blue);
+}
+
+.card-title {
+    color: var(--green);
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.card-description {
+    color: var(--fg);
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.card-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tag {
+    background: var(--black);
+    color: var(--yellow);
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 11px;
 }

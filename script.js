@@ -2,11 +2,19 @@
 let commandHistory = [];
 let historyIndex = -1;
 let isIntroPlaying = true;
+let currentView = 'welcome';
 
 // DOM elements
 const output = document.getElementById('output');
 const input = document.getElementById('input');
 const prompt = document.getElementById('prompt');
+const terminalTitle = document.getElementById('terminal-title');
+
+// View elements
+const welcomeView = document.getElementById('welcome-view');
+const aboutView = document.getElementById('about-view');
+const hobbiesView = document.getElementById('hobbies-view');
+const workoutsView = document.getElementById('workouts-view');
 
 // ASCII Art
 const ASCII_LOGO = `
@@ -25,11 +33,11 @@ const ASCII_LOGO = `
 `;
 
 const CROSSFIT_ASCII = `
-    ┌─────────────────────────────────────┐
-    │    ╔═╗╦═╗╔═╗╔═╗╔═╗╔═╗╦╔╦╗           │
-    │    ║  ╠╦╝║ ║╚═╗╚═╗╠╣ ║ ║            │
-    │    ╚═╝╩╚═╚═╝╚═╝╚═╝╚  ╩ ╩            │
-    └─────────────────────────────────────┘
+    ╔═══════════════════════════════════════╗
+    ║   ╔═╗╦═╗╔═╗╔═╗╔═╗╔═╗╦╔╦╗              ║
+    ║   ║  ╠╦╝║ ║╚═╗╚═╗╠╣ ║ ║               ║
+    ║   ╚═╝╩╚═╚═╝╚═╝╚═╝╚  ╩ ╩               ║
+    ╚═══════════════════════════════════════╝
 `;
 
 // Available commands
@@ -40,23 +48,23 @@ const commands = {
     },
     about: {
         description: 'Learn more about me',
-        action: showAbout
+        action: () => switchView('about')
     },
     hobbies: {
         description: 'View my hobbies and projects',
-        action: showHobbies
+        action: () => switchView('hobbies')
     },
     projects: {
         description: 'Alias for hobbies',
-        action: showHobbies
+        action: () => switchView('hobbies')
     },
     workouts: {
         description: 'View CrossFit workout stats',
-        action: showWorkouts
+        action: () => switchView('workouts')
     },
     crossfit: {
         description: 'Alias for workouts',
-        action: showWorkouts
+        action: () => switchView('workouts')
     },
     clear: {
         description: 'Clear the terminal',
@@ -76,6 +84,345 @@ const commands = {
 function init() {
     input.disabled = true;
     playIntro();
+    buildPages();
+}
+
+// Build full-screen pages
+function buildPages() {
+    buildAboutPage();
+    buildHobbiesPage();
+    buildWorkoutsPage();
+}
+
+// Build About page
+function buildAboutPage() {
+    aboutView.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-title">📋 ABOUT</div>
+            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">👤 PERSONAL INFO</div>
+            <div class="info-grid">
+                <div class="info-label">Name:</div>
+                <div class="info-value">Your Name</div>
+
+                <div class="info-label">Location:</div>
+                <div class="info-value">Earth 🌍</div>
+
+                <div class="info-label">Role:</div>
+                <div class="info-value">Developer & Creator</div>
+
+                <div class="info-label">Interests:</div>
+                <div class="info-value">Coding, CrossFit, Building Cool Stuff</div>
+
+                <div class="info-label">Current Focus:</div>
+                <div class="info-value">Creating interactive web experiences</div>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">💭 BIO</div>
+            <div class="btop-container">
+                <p style="color: var(--fg); line-height: 1.8; margin: 0;">
+                    Hey there! 👋<br><br>
+                    I'm a developer passionate about creating unique web experiences.
+                    This terminal-style page is a reflection of my love for clean,
+                    efficient interfaces and the command line aesthetic.<br><br>
+                    I believe in building tools that are both powerful and beautiful,
+                    combining functionality with an engaging user experience.<br><br>
+                    <span style="color: var(--white);">Fun fact: This entire site runs on vanilla JavaScript!</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">🛠️ SKILLS</div>
+            <div class="btop-container">
+                <div class="graph">
+                    <div class="graph-bar">
+                        <span class="graph-label">JavaScript</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 90%">
+                                <span class="graph-value">Advanced</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">HTML/CSS</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 95%">
+                                <span class="graph-value">Advanced</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Web Design</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 85%">
+                                <span class="graph-value">Proficient</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Terminal Fu</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 88%">
+                                <span class="graph-value">Advanced</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Build Hobbies page
+function buildHobbiesPage() {
+    hobbiesView.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-title">🎨 HOBBIES & PROJECTS</div>
+            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">⚙️ CURRENT PROJECTS</div>
+
+            <div class="card">
+                <div class="card-title">Terminal-Style Portfolio</div>
+                <div class="card-description">
+                    An interactive, terminal-inspired personal website that mimics the look
+                    and feel of modern terminal applications like btop. Features full keyboard
+                    navigation, command history, and smooth animations.
+                </div>
+                <div class="card-tags">
+                    <span class="tag">JavaScript</span>
+                    <span class="tag">CSS</span>
+                    <span class="tag">UI/UX</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Web Development</div>
+                <div class="card-description">
+                    Building modern, interactive applications with focus on user experience
+                    and performance. Always exploring new frameworks and technologies.
+                </div>
+                <div class="card-tags">
+                    <span class="tag">React</span>
+                    <span class="tag">Node.js</span>
+                    <span class="tag">API Design</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Open Source Contributions</div>
+                <div class="card-description">
+                    Contributing to the developer community through open source projects,
+                    bug fixes, and documentation improvements.
+                </div>
+                <div class="card-tags">
+                    <span class="tag">GitHub</span>
+                    <span class="tag">Collaboration</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">🎮 FOR FUN</div>
+
+            <div class="btop-container">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div>
+                        <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">📚 Reading</div>
+                        <div style="color: var(--fg); font-size: 13px;">Sci-fi novels, tech books, and programming blogs</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">🎮 Gaming</div>
+                        <div style="color: var(--fg); font-size: 13px;">Strategy games, puzzles, and indie titles</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">📸 Photography</div>
+                        <div style="color: var(--fg); font-size: 13px;">Capturing moments and exploring composition</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">🖥️ Terminal Customization</div>
+                        <div style="color: var(--fg); font-size: 13px;">Making the CLI look beautiful and efficient</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Build Workouts page
+function buildWorkoutsPage() {
+    workoutsView.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-title">💪 CROSSFIT STATS</div>
+            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
+        </div>
+
+        <pre class="ascii-art" style="margin-bottom: 20px;">${CROSSFIT_ASCII}</pre>
+
+        <div class="page-section">
+            <div class="page-section-title">📊 THIS WEEK'S STATS</div>
+            <div class="btop-container">
+                <div class="btop-row">
+                    <span class="btop-label">Workouts Completed:</span>
+                    <span class="btop-value">5 / 6 days</span>
+                </div>
+                <div class="btop-row">
+                    <span class="btop-label">Total Volume:</span>
+                    <span class="btop-value">12,450 lbs</span>
+                </div>
+                <div class="btop-row">
+                    <span class="btop-label">Avg Heart Rate:</span>
+                    <span class="btop-value">156 bpm</span>
+                </div>
+                <div class="btop-row">
+                    <span class="btop-label">Calories Burned:</span>
+                    <span class="btop-value">3,240 kcal</span>
+                </div>
+                <div class="btop-row">
+                    <span class="btop-label">Weekly Consistency:</span>
+                    <span class="btop-value" style="color: var(--green);">83%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">🏋️ PERSONAL RECORDS (1RM)</div>
+            <div class="btop-container">
+                <div class="graph">
+                    <div class="graph-bar">
+                        <span class="graph-label">Back Squat</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 79%">
+                                <span class="graph-value">315 lbs</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Deadlift</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 81%">
+                                <span class="graph-value">405 lbs</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Bench Press</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 70%">
+                                <span class="graph-value">245 lbs</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Clean & Jerk</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 75%">
+                                <span class="graph-value">225 lbs</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Snatch</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 74%">
+                                <span class="graph-value">185 lbs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">⏱️ BENCHMARK WOD TIMES</div>
+            <div class="btop-container">
+                <div class="graph">
+                    <div class="graph-bar">
+                        <span class="graph-label">Fran</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 85%">
+                                <span class="graph-value">4:23</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Murph</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 72%">
+                                <span class="graph-value">38:15</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Grace</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 88%">
+                                <span class="graph-value">3:45</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Cindy (rounds)</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 77%">
+                                <span class="graph-value">23 rds</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="graph-bar">
+                        <span class="graph-label">Helen</span>
+                        <div class="graph-bar-container">
+                            <div class="graph-bar-fill" style="width: 80%">
+                                <span class="graph-value">9:12</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; color: var(--white); font-size: 12px; margin-top: 20px;">
+            Note: These are example stats. Replace with your actual data!
+        </div>
+    `;
+}
+
+// Switch views
+function switchView(viewName) {
+    // Hide all views
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+    // Update current view
+    currentView = viewName;
+
+    // Show the requested view and update title
+    switch(viewName) {
+        case 'welcome':
+            welcomeView.classList.add('active');
+            terminalTitle.textContent = 'user@openpage ~ %';
+            input.focus();
+            break;
+        case 'about':
+            aboutView.classList.add('active');
+            terminalTitle.textContent = 'user@openpage ~/about %';
+            break;
+        case 'hobbies':
+            hobbiesView.classList.add('active');
+            terminalTitle.textContent = 'user@openpage ~/hobbies %';
+            break;
+        case 'workouts':
+            workoutsView.classList.add('active');
+            terminalTitle.textContent = 'user@openpage ~/workouts %';
+            break;
+    }
 }
 
 // Intro sequence
@@ -143,8 +490,7 @@ function addCommand(cmd) {
 
 // Scroll to bottom
 function scrollToBottom() {
-    const terminal = document.getElementById('terminal');
-    terminal.scrollTop = terminal.scrollHeight;
+    welcomeView.scrollTop = welcomeView.scrollHeight;
 }
 
 // Escape HTML
@@ -175,141 +521,7 @@ function showHelp() {
     addOutput('');
     addOutput('<span class="info">Tip: Use ↑/↓ arrow keys to navigate command history</span>');
     addOutput('<span class="info">Tip: Use TAB for command completion</span>');
-    addOutput('');
-}
-
-// Show about
-function showAbout() {
-    addOutput('<div class="section-header">About Me</div>');
-    addOutput('');
-    addOutput('Hey there! 👋', 'success');
-    addOutput('');
-    addOutput('I\'m a developer passionate about creating unique web experiences.');
-    addOutput('This terminal-style page is a reflection of my love for clean,');
-    addOutput('efficient interfaces and the command line aesthetic.');
-    addOutput('');
-    addOutput('<span class="highlight">Location:</span> Earth 🌍');
-    addOutput('<span class="highlight">Interests:</span> Coding, CrossFit, Building Cool Stuff');
-    addOutput('<span class="highlight">Current Focus:</span> Creating interactive web experiences');
-    addOutput('');
-    addOutput('<span class="muted">Fun fact: This entire site runs on vanilla JavaScript!</span>');
-    addOutput('');
-}
-
-// Show hobbies
-function showHobbies() {
-    addOutput('<div class="section-header">Hobbies & Projects</div>');
-    addOutput('');
-
-    addOutput('<span class="highlight">⚙️  Current Projects</span>');
-    addOutput('');
-    addOutput('<div class="list-item">Terminal-style Portfolio - This very site you\'re looking at!</div>');
-    addOutput('<div class="list-item">Web Development - Building modern, interactive applications</div>');
-    addOutput('<div class="list-item">Open Source Contributions - Giving back to the community</div>');
-    addOutput('');
-
-    addOutput('<span class="highlight">🎨 Creative Pursuits</span>');
-    addOutput('');
-    addOutput('<div class="list-item">UI/UX Design - Crafting beautiful user experiences</div>');
-    addOutput('<div class="list-item">Terminal Customization - Making the CLI look amazing</div>');
-    addOutput('<div class="list-item">Photography - Capturing moments in time</div>');
-    addOutput('');
-
-    addOutput('<span class="highlight">🎮 For Fun</span>');
-    addOutput('');
-    addOutput('<div class="list-item">Gaming - Strategy and puzzle games</div>');
-    addOutput('<div class="list-item">Reading - Sci-fi and tech books</div>');
-    addOutput('<div class="list-item">Exploring new tech - Always learning something new</div>');
-    addOutput('');
-}
-
-// Show workouts
-function showWorkouts() {
-    addOutput(`<pre class="ascii-art">${CROSSFIT_ASCII}</pre>`);
-    addOutput('');
-
-    // Week overview container
-    addOutput('<div class="btop-container">');
-    addOutput('  <div class="btop-header">📊 THIS WEEK\'S STATS</div>');
-    addOutput('  <div class="btop-row">');
-    addOutput('    <span class="btop-label">Workouts Completed:</span>');
-    addOutput('    <span class="btop-value">5 / 6 days</span>');
-    addOutput('  </div>');
-    addOutput('  <div class="btop-row">');
-    addOutput('    <span class="btop-label">Total Volume:</span>');
-    addOutput('    <span class="btop-value">12,450 lbs</span>');
-    addOutput('  </div>');
-    addOutput('  <div class="btop-row">');
-    addOutput('    <span class="btop-label">Avg Heart Rate:</span>');
-    addOutput('    <span class="btop-value">156 bpm</span>');
-    addOutput('  </div>');
-    addOutput('  <div class="btop-row">');
-    addOutput('    <span class="btop-label">Calories Burned:</span>');
-    addOutput('    <span class="btop-value">3,240 kcal</span>');
-    addOutput('  </div>');
-    addOutput('</div>');
-    addOutput('');
-
-    // PR Progress
-    addOutput('<div class="btop-container">');
-    addOutput('  <div class="btop-header">💪 PERSONAL RECORDS (1RM)</div>');
-    addOutput('  <div class="graph">');
-
-    const prs = [
-        { name: 'Back Squat', weight: 315, max: 400 },
-        { name: 'Deadlift', weight: 405, max: 500 },
-        { name: 'Bench Press', weight: 245, max: 350 },
-        { name: 'Clean & Jerk', weight: 225, max: 300 },
-        { name: 'Snatch', weight: 185, max: 250 }
-    ];
-
-    prs.forEach(pr => {
-        const percentage = (pr.weight / pr.max) * 100;
-        addOutput(`    <div class="graph-bar">`);
-        addOutput(`      <span class="graph-label">${pr.name}</span>`);
-        addOutput(`      <div class="graph-bar-container">`);
-        addOutput(`        <div class="graph-bar-fill" style="width: ${percentage}%">`);
-        addOutput(`          <span class="graph-value">${pr.weight} lbs</span>`);
-        addOutput(`        </div>`);
-        addOutput(`      </div>`);
-        addOutput(`    </div>`);
-    });
-
-    addOutput('  </div>');
-    addOutput('</div>');
-    addOutput('');
-
-    // WOD Performance
-    addOutput('<div class="btop-container">');
-    addOutput('  <div class="btop-header">🏃 BENCHMARK WOD TIMES</div>');
-    addOutput('  <div class="graph">');
-
-    const wods = [
-        { name: 'Fran', time: '4:23', maxTime: 10, timeSeconds: 263 },
-        { name: 'Murph', time: '38:15', maxTime: 60, timeSeconds: 2295 },
-        { name: 'Grace', time: '3:45', maxTime: 8, timeSeconds: 225 },
-        { name: 'Cindy', time: '23 rds', maxTime: 30, timeSeconds: 23 },
-        { name: 'Helen', time: '9:12', maxTime: 15, timeSeconds: 552 }
-    ];
-
-    wods.forEach(wod => {
-        const percentage = wod.name === 'Cindy' ? (wod.timeSeconds / wod.maxTime) * 100 :
-                          ((wod.maxTime * 60 - wod.timeSeconds) / (wod.maxTime * 60)) * 100;
-        addOutput(`    <div class="graph-bar">`);
-        addOutput(`      <span class="graph-label">${wod.name}</span>`);
-        addOutput(`      <div class="graph-bar-container">`);
-        addOutput(`        <div class="graph-bar-fill" style="width: ${Math.min(percentage, 100)}%">`);
-        addOutput(`          <span class="graph-value">${wod.time}</span>`);
-        addOutput(`        </div>`);
-        addOutput(`      </div>`);
-        addOutput(`    </div>`);
-    });
-
-    addOutput('  </div>');
-    addOutput('</div>');
-    addOutput('');
-
-    addOutput('<span class="muted">Note: These are example stats. Replace with your actual data!</span>');
+    addOutput('<span class="info">Tip: Press ESC to return from any page</span>');
     addOutput('');
 }
 
@@ -322,6 +534,7 @@ function clearTerminal() {
 function showHistory() {
     if (commandHistory.length === 0) {
         addOutput('No command history yet.', 'muted');
+        addOutput('');
         return;
     }
 
@@ -422,9 +635,16 @@ input.addEventListener('keydown', (e) => {
     }
 });
 
-// Keep focus on input
+// Global escape key handler
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && currentView !== 'welcome' && !isIntroPlaying) {
+        switchView('welcome');
+    }
+});
+
+// Keep focus on input when on welcome view
 document.addEventListener('click', () => {
-    if (!isIntroPlaying) {
+    if (!isIntroPlaying && currentView === 'welcome') {
         input.focus();
     }
 });
