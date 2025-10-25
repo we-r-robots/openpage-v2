@@ -2,11 +2,24 @@
 let commandHistory = [];
 let historyIndex = -1;
 let isIntroPlaying = true;
+let currentView = 'welcome';
+
+// Data storage
+let aboutData = null;
+let hobbiesData = null;
+let workoutsData = null;
 
 // DOM elements
 const output = document.getElementById('output');
 const input = document.getElementById('input');
 const prompt = document.getElementById('prompt');
+const terminalTitle = document.getElementById('terminal-title');
+
+// View elements
+const welcomeView = document.getElementById('welcome-view');
+const aboutView = document.getElementById('about-view');
+const hobbiesView = document.getElementById('hobbies-view');
+const workoutsView = document.getElementById('workouts-view');
 
 // ASCII Art
 const ASCII_LOGO = `
@@ -25,11 +38,11 @@ const ASCII_LOGO = `
 `;
 
 const CROSSFIT_ASCII = `
-    ┌─────────────────────────────────────┐
-    │    ╔═╗╦═╗╔═╗╔═╗╔═╗╔═╗╦╔╦╗           │
-    │    ║  ╠╦╝║ ║╚═╗╚═╗╠╣ ║ ║            │
-    │    ╚═╝╩╚═╚═╝╚═╝╚═╝╚  ╩ ╩            │
-    └─────────────────────────────────────┘
+    ╔═══════════════════════════════════════╗
+    ║   ╔═╗╦═╗╔═╗╔═╗╔═╗╔═╗╦╔╦╗              ║
+    ║   ║  ╠╦╝║ ║╚═╗╚═╗╠╣ ║ ║               ║
+    ║   ╚═╝╩╚═╚═╝╚═╝╚═╝╚  ╩ ╩               ║
+    ╚═══════════════════════════════════════╝
 `;
 
 // Available commands
@@ -40,23 +53,23 @@ const commands = {
     },
     about: {
         description: 'Learn more about me',
-        action: showAbout
+        action: () => switchView('about')
     },
     hobbies: {
         description: 'View my hobbies and projects',
-        action: showHobbies
+        action: () => switchView('hobbies')
     },
     projects: {
         description: 'Alias for hobbies',
-        action: showHobbies
+        action: () => switchView('hobbies')
     },
     workouts: {
         description: 'View CrossFit workout stats',
-        action: showWorkouts
+        action: () => switchView('workouts')
     },
     crossfit: {
         description: 'Alias for workouts',
-        action: showWorkouts
+        action: () => switchView('workouts')
     },
     clear: {
         description: 'Clear the terminal',
@@ -73,9 +86,270 @@ const commands = {
 };
 
 // Initialize terminal
-function init() {
+async function init() {
     input.disabled = true;
+    await loadData();
     playIntro();
+    buildPages();
+}
+
+// Load all JSON data
+async function loadData() {
+    try {
+        const [about, hobbies, workouts] = await Promise.all([
+            fetch('data/about.json').then(r => r.json()),
+            fetch('data/hobbies.json').then(r => r.json()),
+            fetch('data/workouts.json').then(r => r.json())
+        ]);
+
+        aboutData = about;
+        hobbiesData = hobbies;
+        workoutsData = workouts;
+    } catch (error) {
+        console.error('Error loading data:', error);
+        // Use fallback data if fetch fails
+        aboutData = { personal: {}, bio: '', skills: [] };
+        hobbiesData = { projects: [], funActivities: [] };
+        workoutsData = { weekStats: {}, personalRecords: [], benchmarkWods: [] };
+    }
+}
+
+// Build full-screen pages
+function buildPages() {
+    buildAboutPage();
+    buildHobbiesPage();
+    buildWorkoutsPage();
+}
+
+// Build About page
+function buildAboutPage() {
+    if (!aboutData) return;
+
+    const { personal, bio, skills } = aboutData;
+
+    // Build skills HTML
+    const skillsHTML = skills.map(skill => `
+        <div class="graph-bar">
+            <span class="graph-label">${skill.name}</span>
+            <div class="graph-bar-container">
+                <div class="graph-bar-fill" style="width: ${skill.level}%">
+                    <span class="graph-value">${skill.label}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    aboutView.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-title">📋 ABOUT</div>
+            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">👤 PERSONAL INFO</div>
+            <div class="info-grid">
+                <div class="info-label">Name:</div>
+                <div class="info-value">${personal.name || 'Not set'}</div>
+
+                <div class="info-label">Location:</div>
+                <div class="info-value">${personal.location || 'Not set'}</div>
+
+                <div class="info-label">Role:</div>
+                <div class="info-value">${personal.role || 'Not set'}</div>
+
+                <div class="info-label">Interests:</div>
+                <div class="info-value">${personal.interests || 'Not set'}</div>
+
+                <div class="info-label">Current Focus:</div>
+                <div class="info-value">${personal.currentFocus || 'Not set'}</div>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">💭 BIO</div>
+            <div class="btop-container">
+                <p style="color: var(--fg); line-height: 1.8; margin: 0;">
+                    ${bio || 'No bio available.'}
+                </p>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">🛠️ SKILLS</div>
+            <div class="btop-container">
+                <div class="graph">
+                    ${skillsHTML}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Build Hobbies page
+function buildHobbiesPage() {
+    if (!hobbiesData) return;
+
+    const { projects, funActivities } = hobbiesData;
+
+    // Build project cards HTML
+    const projectsHTML = projects.map(project => `
+        <div class="card">
+            <div class="card-title">${project.title}</div>
+            <div class="card-description">
+                ${project.description}
+            </div>
+            <div class="card-tags">
+                ${project.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    // Build fun activities HTML
+    const activitiesHTML = funActivities.map(activity => `
+        <div>
+            <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">${activity.icon} ${activity.name}</div>
+            <div style="color: var(--fg); font-size: 13px;">${activity.description}</div>
+        </div>
+    `).join('');
+
+    hobbiesView.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-title">🎨 HOBBIES & PROJECTS</div>
+            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">⚙️ CURRENT PROJECTS</div>
+            ${projectsHTML}
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">🎮 FOR FUN</div>
+            <div class="btop-container">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    ${activitiesHTML}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Build Workouts page
+function buildWorkoutsPage() {
+    if (!workoutsData) return;
+
+    const { weekStats, personalRecords, benchmarkWods } = workoutsData;
+
+    // Build personal records HTML
+    const prsHTML = personalRecords.map(pr => `
+        <div class="graph-bar">
+            <span class="graph-label">${pr.exercise}</span>
+            <div class="graph-bar-container">
+                <div class="graph-bar-fill" style="width: ${pr.percentage}%">
+                    <span class="graph-value">${pr.weight} ${pr.unit}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    // Build benchmark WODs HTML
+    const wodsHTML = benchmarkWods.map(wod => `
+        <div class="graph-bar">
+            <span class="graph-label">${wod.name}</span>
+            <div class="graph-bar-container">
+                <div class="graph-bar-fill" style="width: ${wod.percentage}%">
+                    <span class="graph-value">${wod.time}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    workoutsView.innerHTML = `
+        <div class="page-header">
+            <div class="page-header-title">💪 CROSSFIT STATS</div>
+            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
+        </div>
+
+        <pre class="ascii-art" style="margin-bottom: 20px;">${CROSSFIT_ASCII}</pre>
+
+        <div class="page-section">
+            <div class="page-section-title">📊 THIS WEEK'S STATS</div>
+            <div class="btop-container">
+                <div class="btop-row">
+                    <span class="btop-label">Workouts Completed:</span>
+                    <span class="btop-value">${weekStats.workoutsCompleted || 'N/A'}</span>
+                </div>
+                <div class="btop-row">
+                    <span class="btop-label">Total Volume:</span>
+                    <span class="btop-value">${weekStats.totalVolume || 'N/A'}</span>
+                </div>
+                <div class="btop-row">
+                    <span class="btop-label">Avg Heart Rate:</span>
+                    <span class="btop-value">${weekStats.avgHeartRate || 'N/A'}</span>
+                </div>
+                <div class="btop-row">
+                    <span class="btop-label">Calories Burned:</span>
+                    <span class="btop-value">${weekStats.caloriesBurned || 'N/A'}</span>
+                </div>
+                <div class="btop-row">
+                    <span class="btop-label">Weekly Consistency:</span>
+                    <span class="btop-value" style="color: var(--green);">${weekStats.consistency || 0}%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">🏋️ PERSONAL RECORDS (1RM)</div>
+            <div class="btop-container">
+                <div class="graph">
+                    ${prsHTML}
+                </div>
+            </div>
+        </div>
+
+        <div class="page-section">
+            <div class="page-section-title">⏱️ BENCHMARK WOD TIMES</div>
+            <div class="btop-container">
+                <div class="graph">
+                    ${wodsHTML}
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; color: var(--white); font-size: 12px; margin-top: 20px;">
+            Last updated: ${new Date(workoutsData.lastUpdated).toLocaleDateString()}
+        </div>
+    `;
+}
+
+// Switch views
+function switchView(viewName) {
+    // Hide all views
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+    // Update current view
+    currentView = viewName;
+
+    // Show the requested view and update title
+    switch(viewName) {
+        case 'welcome':
+            welcomeView.classList.add('active');
+            terminalTitle.textContent = 'user@openpage ~ %';
+            input.focus();
+            break;
+        case 'about':
+            aboutView.classList.add('active');
+            terminalTitle.textContent = 'user@openpage ~/about %';
+            break;
+        case 'hobbies':
+            hobbiesView.classList.add('active');
+            terminalTitle.textContent = 'user@openpage ~/hobbies %';
+            break;
+        case 'workouts':
+            workoutsView.classList.add('active');
+            terminalTitle.textContent = 'user@openpage ~/workouts %';
+            break;
+    }
 }
 
 // Intro sequence
@@ -143,8 +417,7 @@ function addCommand(cmd) {
 
 // Scroll to bottom
 function scrollToBottom() {
-    const terminal = document.getElementById('terminal');
-    terminal.scrollTop = terminal.scrollHeight;
+    welcomeView.scrollTop = welcomeView.scrollHeight;
 }
 
 // Escape HTML
@@ -175,141 +448,7 @@ function showHelp() {
     addOutput('');
     addOutput('<span class="info">Tip: Use ↑/↓ arrow keys to navigate command history</span>');
     addOutput('<span class="info">Tip: Use TAB for command completion</span>');
-    addOutput('');
-}
-
-// Show about
-function showAbout() {
-    addOutput('<div class="section-header">About Me</div>');
-    addOutput('');
-    addOutput('Hey there! 👋', 'success');
-    addOutput('');
-    addOutput('I\'m a developer passionate about creating unique web experiences.');
-    addOutput('This terminal-style page is a reflection of my love for clean,');
-    addOutput('efficient interfaces and the command line aesthetic.');
-    addOutput('');
-    addOutput('<span class="highlight">Location:</span> Earth 🌍');
-    addOutput('<span class="highlight">Interests:</span> Coding, CrossFit, Building Cool Stuff');
-    addOutput('<span class="highlight">Current Focus:</span> Creating interactive web experiences');
-    addOutput('');
-    addOutput('<span class="muted">Fun fact: This entire site runs on vanilla JavaScript!</span>');
-    addOutput('');
-}
-
-// Show hobbies
-function showHobbies() {
-    addOutput('<div class="section-header">Hobbies & Projects</div>');
-    addOutput('');
-
-    addOutput('<span class="highlight">⚙️  Current Projects</span>');
-    addOutput('');
-    addOutput('<div class="list-item">Terminal-style Portfolio - This very site you\'re looking at!</div>');
-    addOutput('<div class="list-item">Web Development - Building modern, interactive applications</div>');
-    addOutput('<div class="list-item">Open Source Contributions - Giving back to the community</div>');
-    addOutput('');
-
-    addOutput('<span class="highlight">🎨 Creative Pursuits</span>');
-    addOutput('');
-    addOutput('<div class="list-item">UI/UX Design - Crafting beautiful user experiences</div>');
-    addOutput('<div class="list-item">Terminal Customization - Making the CLI look amazing</div>');
-    addOutput('<div class="list-item">Photography - Capturing moments in time</div>');
-    addOutput('');
-
-    addOutput('<span class="highlight">🎮 For Fun</span>');
-    addOutput('');
-    addOutput('<div class="list-item">Gaming - Strategy and puzzle games</div>');
-    addOutput('<div class="list-item">Reading - Sci-fi and tech books</div>');
-    addOutput('<div class="list-item">Exploring new tech - Always learning something new</div>');
-    addOutput('');
-}
-
-// Show workouts
-function showWorkouts() {
-    addOutput(`<pre class="ascii-art">${CROSSFIT_ASCII}</pre>`);
-    addOutput('');
-
-    // Week overview container
-    addOutput('<div class="btop-container">');
-    addOutput('  <div class="btop-header">📊 THIS WEEK\'S STATS</div>');
-    addOutput('  <div class="btop-row">');
-    addOutput('    <span class="btop-label">Workouts Completed:</span>');
-    addOutput('    <span class="btop-value">5 / 6 days</span>');
-    addOutput('  </div>');
-    addOutput('  <div class="btop-row">');
-    addOutput('    <span class="btop-label">Total Volume:</span>');
-    addOutput('    <span class="btop-value">12,450 lbs</span>');
-    addOutput('  </div>');
-    addOutput('  <div class="btop-row">');
-    addOutput('    <span class="btop-label">Avg Heart Rate:</span>');
-    addOutput('    <span class="btop-value">156 bpm</span>');
-    addOutput('  </div>');
-    addOutput('  <div class="btop-row">');
-    addOutput('    <span class="btop-label">Calories Burned:</span>');
-    addOutput('    <span class="btop-value">3,240 kcal</span>');
-    addOutput('  </div>');
-    addOutput('</div>');
-    addOutput('');
-
-    // PR Progress
-    addOutput('<div class="btop-container">');
-    addOutput('  <div class="btop-header">💪 PERSONAL RECORDS (1RM)</div>');
-    addOutput('  <div class="graph">');
-
-    const prs = [
-        { name: 'Back Squat', weight: 315, max: 400 },
-        { name: 'Deadlift', weight: 405, max: 500 },
-        { name: 'Bench Press', weight: 245, max: 350 },
-        { name: 'Clean & Jerk', weight: 225, max: 300 },
-        { name: 'Snatch', weight: 185, max: 250 }
-    ];
-
-    prs.forEach(pr => {
-        const percentage = (pr.weight / pr.max) * 100;
-        addOutput(`    <div class="graph-bar">`);
-        addOutput(`      <span class="graph-label">${pr.name}</span>`);
-        addOutput(`      <div class="graph-bar-container">`);
-        addOutput(`        <div class="graph-bar-fill" style="width: ${percentage}%">`);
-        addOutput(`          <span class="graph-value">${pr.weight} lbs</span>`);
-        addOutput(`        </div>`);
-        addOutput(`      </div>`);
-        addOutput(`    </div>`);
-    });
-
-    addOutput('  </div>');
-    addOutput('</div>');
-    addOutput('');
-
-    // WOD Performance
-    addOutput('<div class="btop-container">');
-    addOutput('  <div class="btop-header">🏃 BENCHMARK WOD TIMES</div>');
-    addOutput('  <div class="graph">');
-
-    const wods = [
-        { name: 'Fran', time: '4:23', maxTime: 10, timeSeconds: 263 },
-        { name: 'Murph', time: '38:15', maxTime: 60, timeSeconds: 2295 },
-        { name: 'Grace', time: '3:45', maxTime: 8, timeSeconds: 225 },
-        { name: 'Cindy', time: '23 rds', maxTime: 30, timeSeconds: 23 },
-        { name: 'Helen', time: '9:12', maxTime: 15, timeSeconds: 552 }
-    ];
-
-    wods.forEach(wod => {
-        const percentage = wod.name === 'Cindy' ? (wod.timeSeconds / wod.maxTime) * 100 :
-                          ((wod.maxTime * 60 - wod.timeSeconds) / (wod.maxTime * 60)) * 100;
-        addOutput(`    <div class="graph-bar">`);
-        addOutput(`      <span class="graph-label">${wod.name}</span>`);
-        addOutput(`      <div class="graph-bar-container">`);
-        addOutput(`        <div class="graph-bar-fill" style="width: ${Math.min(percentage, 100)}%">`);
-        addOutput(`          <span class="graph-value">${wod.time}</span>`);
-        addOutput(`        </div>`);
-        addOutput(`      </div>`);
-        addOutput(`    </div>`);
-    });
-
-    addOutput('  </div>');
-    addOutput('</div>');
-    addOutput('');
-
-    addOutput('<span class="muted">Note: These are example stats. Replace with your actual data!</span>');
+    addOutput('<span class="info">Tip: Press ESC to return from any page</span>');
     addOutput('');
 }
 
@@ -322,6 +461,7 @@ function clearTerminal() {
 function showHistory() {
     if (commandHistory.length === 0) {
         addOutput('No command history yet.', 'muted');
+        addOutput('');
         return;
     }
 
@@ -422,9 +562,16 @@ input.addEventListener('keydown', (e) => {
     }
 });
 
-// Keep focus on input
+// Global escape key handler
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && currentView !== 'welcome' && !isIntroPlaying) {
+        switchView('welcome');
+    }
+});
+
+// Keep focus on input when on welcome view
 document.addEventListener('click', () => {
-    if (!isIntroPlaying) {
+    if (!isIntroPlaying && currentView === 'welcome') {
         input.focus();
     }
 });

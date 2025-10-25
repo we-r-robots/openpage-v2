@@ -1,0 +1,32 @@
+{
+  "personal": {
+    "name": "Your Name",
+    "location": "Earth 🌍",
+    "role": "Developer & Creator",
+    "interests": "Coding, CrossFit, Building Cool Stuff",
+    "currentFocus": "Creating interactive web experiences"
+  },
+  "bio": "Hey there! 👋<br><br>I'm a developer passionate about creating unique web experiences. This terminal-style page is a reflection of my love for clean, efficient interfaces and the command line aesthetic.<br><br>I believe in building tools that are both powerful and beautiful, combining functionality with an engaging user experience.<br><br><span style=\"color: var(--white);\">Fun fact: This entire site runs on vanilla JavaScript!</span>",
+  "skills": [
+    {
+      "name": "JavaScript",
+      "level": 90,
+      "label": "Advanced"
+    },
+    {
+      "name": "HTML/CSS",
+      "level": 95,
+      "label": "Advanced"
+    },
+    {
+      "name": "Web Design",
+      "level": 85,
+      "label": "Proficient"
+    },
+    {
+      "name": "Terminal Fu",
+      "level": 88,
+      "label": "Advanced"
+    }
+  ]
+}

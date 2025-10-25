@@ -1,0 +1,44 @@
+{
+  "projects": [
+    {
+      "title": "Terminal-Style Portfolio",
+      "description": "An interactive, terminal-inspired personal website that mimics the look and feel of modern terminal applications like btop. Features full keyboard navigation, command history, and smooth animations.",
+      "tags": ["JavaScript", "CSS", "UI/UX"],
+      "images": []
+    },
+    {
+      "title": "Web Development",
+      "description": "Building modern, interactive applications with focus on user experience and performance. Always exploring new frameworks and technologies.",
+      "tags": ["React", "Node.js", "API Design"],
+      "images": []
+    },
+    {
+      "title": "Open Source Contributions",
+      "description": "Contributing to the developer community through open source projects, bug fixes, and documentation improvements.",
+      "tags": ["GitHub", "Collaboration"],
+      "images": []
+    }
+  ],
+  "funActivities": [
+    {
+      "name": "Reading",
+      "icon": "📚",
+      "description": "Sci-fi novels, tech books, and programming blogs"
+    },
+    {
+      "name": "Gaming",
+      "icon": "🎮",
+      "description": "Strategy games, puzzles, and indie titles"
+    },
+    {
+      "name": "Photography",
+      "icon": "📸",
+      "description": "Capturing moments and exploring composition"
+    },
+    {
+      "name": "Terminal Customization",
+      "icon": "🖥️",
+      "description": "Making the CLI look beautiful and efficient"
+    }
+  ]
+}
