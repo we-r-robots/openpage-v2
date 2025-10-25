@@ -4,6 +4,11 @@ let historyIndex = -1;
 let isIntroPlaying = true;
 let currentView = 'welcome';
 
+// Data storage
+let aboutData = null;
+let hobbiesData = null;
+let workoutsData = null;
+
 // DOM elements
 const output = document.getElementById('output');
 const input = document.getElementById('input');
@@ -81,10 +86,32 @@ const commands = {
 };
 
 // Initialize terminal
-function init() {
+async function init() {
     input.disabled = true;
+    await loadData();
     playIntro();
     buildPages();
+}
+
+// Load all JSON data
+async function loadData() {
+    try {
+        const [about, hobbies, workouts] = await Promise.all([
+            fetch('data/about.json').then(r => r.json()),
+            fetch('data/hobbies.json').then(r => r.json()),
+            fetch('data/workouts.json').then(r => r.json())
+        ]);
+
+        aboutData = about;
+        hobbiesData = hobbies;
+        workoutsData = workouts;
+    } catch (error) {
+        console.error('Error loading data:', error);
+        // Use fallback data if fetch fails
+        aboutData = { personal: {}, bio: '', skills: [] };
+        hobbiesData = { projects: [], funActivities: [] };
+        workoutsData = { weekStats: {}, personalRecords: [], benchmarkWods: [] };
+    }
 }
 
 // Build full-screen pages
@@ -96,6 +123,22 @@ function buildPages() {
 
 // Build About page
 function buildAboutPage() {
+    if (!aboutData) return;
+
+    const { personal, bio, skills } = aboutData;
+
+    // Build skills HTML
+    const skillsHTML = skills.map(skill => `
+        <div class="graph-bar">
+            <span class="graph-label">${skill.name}</span>
+            <div class="graph-bar-container">
+                <div class="graph-bar-fill" style="width: ${skill.level}%">
+                    <span class="graph-value">${skill.label}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
     aboutView.innerHTML = `
         <div class="page-header">
             <div class="page-header-title">📋 ABOUT</div>
@@ -106,19 +149,19 @@ function buildAboutPage() {
             <div class="page-section-title">👤 PERSONAL INFO</div>
             <div class="info-grid">
                 <div class="info-label">Name:</div>
-                <div class="info-value">Your Name</div>
+                <div class="info-value">${personal.name || 'Not set'}</div>
 
                 <div class="info-label">Location:</div>
-                <div class="info-value">Earth 🌍</div>
+                <div class="info-value">${personal.location || 'Not set'}</div>
 
                 <div class="info-label">Role:</div>
-                <div class="info-value">Developer & Creator</div>
+                <div class="info-value">${personal.role || 'Not set'}</div>
 
                 <div class="info-label">Interests:</div>
-                <div class="info-value">Coding, CrossFit, Building Cool Stuff</div>
+                <div class="info-value">${personal.interests || 'Not set'}</div>
 
                 <div class="info-label">Current Focus:</div>
-                <div class="info-value">Creating interactive web experiences</div>
+                <div class="info-value">${personal.currentFocus || 'Not set'}</div>
             </div>
         </div>
 
@@ -126,13 +169,7 @@ function buildAboutPage() {
             <div class="page-section-title">💭 BIO</div>
             <div class="btop-container">
                 <p style="color: var(--fg); line-height: 1.8; margin: 0;">
-                    Hey there! 👋<br><br>
-                    I'm a developer passionate about creating unique web experiences.
-                    This terminal-style page is a reflection of my love for clean,
-                    efficient interfaces and the command line aesthetic.<br><br>
-                    I believe in building tools that are both powerful and beautiful,
-                    combining functionality with an engaging user experience.<br><br>
-                    <span style="color: var(--white);">Fun fact: This entire site runs on vanilla JavaScript!</span>
+                    ${bio || 'No bio available.'}
                 </p>
             </div>
         </div>
@@ -141,38 +178,7 @@ function buildAboutPage() {
             <div class="page-section-title">🛠️ SKILLS</div>
             <div class="btop-container">
                 <div class="graph">
-                    <div class="graph-bar">
-                        <span class="graph-label">JavaScript</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 90%">
-                                <span class="graph-value">Advanced</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">HTML/CSS</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 95%">
-                                <span class="graph-value">Advanced</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Web Design</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 85%">
-                                <span class="graph-value">Proficient</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Terminal Fu</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 88%">
-                                <span class="graph-value">Advanced</span>
-                            </div>
-                        </div>
-                    </div>
+                    ${skillsHTML}
                 </div>
             </div>
         </div>
@@ -181,6 +187,31 @@ function buildAboutPage() {
 
 // Build Hobbies page
 function buildHobbiesPage() {
+    if (!hobbiesData) return;
+
+    const { projects, funActivities } = hobbiesData;
+
+    // Build project cards HTML
+    const projectsHTML = projects.map(project => `
+        <div class="card">
+            <div class="card-title">${project.title}</div>
+            <div class="card-description">
+                ${project.description}
+            </div>
+            <div class="card-tags">
+                ${project.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    // Build fun activities HTML
+    const activitiesHTML = funActivities.map(activity => `
+        <div>
+            <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">${activity.icon} ${activity.name}</div>
+            <div style="color: var(--fg); font-size: 13px;">${activity.description}</div>
+        </div>
+    `).join('');
+
     hobbiesView.innerHTML = `
         <div class="page-header">
             <div class="page-header-title">🎨 HOBBIES & PROJECTS</div>
@@ -189,68 +220,14 @@ function buildHobbiesPage() {
 
         <div class="page-section">
             <div class="page-section-title">⚙️ CURRENT PROJECTS</div>
-
-            <div class="card">
-                <div class="card-title">Terminal-Style Portfolio</div>
-                <div class="card-description">
-                    An interactive, terminal-inspired personal website that mimics the look
-                    and feel of modern terminal applications like btop. Features full keyboard
-                    navigation, command history, and smooth animations.
-                </div>
-                <div class="card-tags">
-                    <span class="tag">JavaScript</span>
-                    <span class="tag">CSS</span>
-                    <span class="tag">UI/UX</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">Web Development</div>
-                <div class="card-description">
-                    Building modern, interactive applications with focus on user experience
-                    and performance. Always exploring new frameworks and technologies.
-                </div>
-                <div class="card-tags">
-                    <span class="tag">React</span>
-                    <span class="tag">Node.js</span>
-                    <span class="tag">API Design</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">Open Source Contributions</div>
-                <div class="card-description">
-                    Contributing to the developer community through open source projects,
-                    bug fixes, and documentation improvements.
-                </div>
-                <div class="card-tags">
-                    <span class="tag">GitHub</span>
-                    <span class="tag">Collaboration</span>
-                </div>
-            </div>
+            ${projectsHTML}
         </div>
 
         <div class="page-section">
             <div class="page-section-title">🎮 FOR FUN</div>
-
             <div class="btop-container">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    <div>
-                        <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">📚 Reading</div>
-                        <div style="color: var(--fg); font-size: 13px;">Sci-fi novels, tech books, and programming blogs</div>
-                    </div>
-                    <div>
-                        <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">🎮 Gaming</div>
-                        <div style="color: var(--fg); font-size: 13px;">Strategy games, puzzles, and indie titles</div>
-                    </div>
-                    <div>
-                        <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">📸 Photography</div>
-                        <div style="color: var(--fg); font-size: 13px;">Capturing moments and exploring composition</div>
-                    </div>
-                    <div>
-                        <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">🖥️ Terminal Customization</div>
-                        <div style="color: var(--fg); font-size: 13px;">Making the CLI look beautiful and efficient</div>
-                    </div>
+                    ${activitiesHTML}
                 </div>
             </div>
         </div>
@@ -259,6 +236,34 @@ function buildHobbiesPage() {
 
 // Build Workouts page
 function buildWorkoutsPage() {
+    if (!workoutsData) return;
+
+    const { weekStats, personalRecords, benchmarkWods } = workoutsData;
+
+    // Build personal records HTML
+    const prsHTML = personalRecords.map(pr => `
+        <div class="graph-bar">
+            <span class="graph-label">${pr.exercise}</span>
+            <div class="graph-bar-container">
+                <div class="graph-bar-fill" style="width: ${pr.percentage}%">
+                    <span class="graph-value">${pr.weight} ${pr.unit}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    // Build benchmark WODs HTML
+    const wodsHTML = benchmarkWods.map(wod => `
+        <div class="graph-bar">
+            <span class="graph-label">${wod.name}</span>
+            <div class="graph-bar-container">
+                <div class="graph-bar-fill" style="width: ${wod.percentage}%">
+                    <span class="graph-value">${wod.time}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
     workoutsView.innerHTML = `
         <div class="page-header">
             <div class="page-header-title">💪 CROSSFIT STATS</div>
@@ -272,23 +277,23 @@ function buildWorkoutsPage() {
             <div class="btop-container">
                 <div class="btop-row">
                     <span class="btop-label">Workouts Completed:</span>
-                    <span class="btop-value">5 / 6 days</span>
+                    <span class="btop-value">${weekStats.workoutsCompleted || 'N/A'}</span>
                 </div>
                 <div class="btop-row">
                     <span class="btop-label">Total Volume:</span>
-                    <span class="btop-value">12,450 lbs</span>
+                    <span class="btop-value">${weekStats.totalVolume || 'N/A'}</span>
                 </div>
                 <div class="btop-row">
                     <span class="btop-label">Avg Heart Rate:</span>
-                    <span class="btop-value">156 bpm</span>
+                    <span class="btop-value">${weekStats.avgHeartRate || 'N/A'}</span>
                 </div>
                 <div class="btop-row">
                     <span class="btop-label">Calories Burned:</span>
-                    <span class="btop-value">3,240 kcal</span>
+                    <span class="btop-value">${weekStats.caloriesBurned || 'N/A'}</span>
                 </div>
                 <div class="btop-row">
                     <span class="btop-label">Weekly Consistency:</span>
-                    <span class="btop-value" style="color: var(--green);">83%</span>
+                    <span class="btop-value" style="color: var(--green);">${weekStats.consistency || 0}%</span>
                 </div>
             </div>
         </div>
@@ -297,46 +302,7 @@ function buildWorkoutsPage() {
             <div class="page-section-title">🏋️ PERSONAL RECORDS (1RM)</div>
             <div class="btop-container">
                 <div class="graph">
-                    <div class="graph-bar">
-                        <span class="graph-label">Back Squat</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 79%">
-                                <span class="graph-value">315 lbs</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Deadlift</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 81%">
-                                <span class="graph-value">405 lbs</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Bench Press</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 70%">
-                                <span class="graph-value">245 lbs</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Clean & Jerk</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 75%">
-                                <span class="graph-value">225 lbs</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Snatch</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 74%">
-                                <span class="graph-value">185 lbs</span>
-                            </div>
-                        </div>
-                    </div>
+                    ${prsHTML}
                 </div>
             </div>
         </div>
@@ -345,52 +311,13 @@ function buildWorkoutsPage() {
             <div class="page-section-title">⏱️ BENCHMARK WOD TIMES</div>
             <div class="btop-container">
                 <div class="graph">
-                    <div class="graph-bar">
-                        <span class="graph-label">Fran</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 85%">
-                                <span class="graph-value">4:23</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Murph</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 72%">
-                                <span class="graph-value">38:15</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Grace</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 88%">
-                                <span class="graph-value">3:45</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Cindy (rounds)</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 77%">
-                                <span class="graph-value">23 rds</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="graph-bar">
-                        <span class="graph-label">Helen</span>
-                        <div class="graph-bar-container">
-                            <div class="graph-bar-fill" style="width: 80%">
-                                <span class="graph-value">9:12</span>
-                            </div>
-                        </div>
-                    </div>
+                    ${wodsHTML}
                 </div>
             </div>
         </div>
 
         <div style="text-align: center; color: var(--white); font-size: 12px; margin-top: 20px;">
-            Note: These are example stats. Replace with your actual data!
+            Last updated: ${new Date(workoutsData.lastUpdated).toLocaleDateString()}
         </div>
     `;
 }

@@ -31,12 +31,16 @@ body {
 }
 
 .terminal-container {
-    width: 100%;
-    max-width: 1200px;
+    width: 90vw;
+    height: 90vh;
+    max-width: 2000px;
+    max-height: 1200px;
     background: var(--bg);
     border-radius: 8px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .terminal-header {
@@ -56,7 +60,7 @@ body {
 
 .terminal-body {
     padding: 0;
-    height: 700px;
+    flex: 1;
     overflow: hidden;
     background: var(--bg);
     position: relative;
