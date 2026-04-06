@@ -1,580 +1,765 @@
-// Terminal state
-let commandHistory = [];
-let historyIndex = -1;
-let isIntroPlaying = true;
-let currentView = 'welcome';
+/* ============================================
+   OPENPAGE AI TERMINAL — Chat Engine
+   ============================================ */
 
-// Data storage
-let aboutData = null;
-let hobbiesData = null;
-let workoutsData = null;
-
-// DOM elements
-const output = document.getElementById('output');
-const input = document.getElementById('input');
-const prompt = document.getElementById('prompt');
-const terminalTitle = document.getElementById('terminal-title');
-
-// View elements
-const welcomeView = document.getElementById('welcome-view');
-const aboutView = document.getElementById('about-view');
-const hobbiesView = document.getElementById('hobbies-view');
-const workoutsView = document.getElementById('workouts-view');
-
-// ASCII Art
-const ASCII_LOGO = `
-    ╔═══════════════════════════════════════════╗
-    ║                                           ║
-    ║     ██████╗ ██████╗ ███████╗███╗   ██╗   ║
-    ║    ██╔═══██╗██╔══██╗██╔════╝████╗  ██║   ║
-    ║    ██║   ██║██████╔╝█████╗  ██╔██╗ ██║   ║
-    ║    ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║   ║
-    ║    ╚██████╔╝██║     ███████╗██║ ╚████║   ║
-    ║     ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝   ║
-    ║                                           ║
-    ║           P  A  G  E                      ║
-    ║                                           ║
-    ╚═══════════════════════════════════════════╝
-`;
-
-const CROSSFIT_ASCII = `
-    ╔═══════════════════════════════════════╗
-    ║   ╔═╗╦═╗╔═╗╔═╗╔═╗╔═╗╦╔╦╗              ║
-    ║   ║  ╠╦╝║ ║╚═╗╚═╗╠╣ ║ ║               ║
-    ║   ╚═╝╩╚═╚═╝╚═╝╚═╝╚  ╩ ╩               ║
-    ╚═══════════════════════════════════════╝
-`;
-
-// Available commands
-const commands = {
-    help: {
-        description: 'Display available commands',
-        action: showHelp
-    },
-    about: {
-        description: 'Learn more about me',
-        action: () => switchView('about')
-    },
-    hobbies: {
-        description: 'View my hobbies and projects',
-        action: () => switchView('hobbies')
-    },
-    projects: {
-        description: 'Alias for hobbies',
-        action: () => switchView('hobbies')
-    },
-    workouts: {
-        description: 'View CrossFit workout stats',
-        action: () => switchView('workouts')
-    },
-    crossfit: {
-        description: 'Alias for workouts',
-        action: () => switchView('workouts')
-    },
-    clear: {
-        description: 'Clear the terminal',
-        action: clearTerminal
-    },
-    history: {
-        description: 'Show command history',
-        action: showHistory
-    },
-    banner: {
-        description: 'Display the welcome banner',
-        action: showBanner
-    }
+// --- Configuration ---
+const CONFIG = {
+    apiEndpoint: '',       // Set to API Gateway URL when backend is ready
+    mockMode: true,        // Use mock responses until backend is live
+    streamSpeed: 18,       // ms per character when streaming text
+    bootSpeed: 25,         // ms per character during boot sequence
 };
 
-// Initialize terminal
+// --- State ---
+const state = {
+    sessionId: crypto.randomUUID(),
+    messages: [],          // Conversation history: { role, content }
+    isProcessing: false,
+    isBooting: true,
+    commandHistory: [],
+    historyIndex: -1,
+};
+
+// --- DOM References ---
+const terminalBody = document.getElementById('terminalBody');
+const userInput = document.getElementById('userInput');
+const statusIndicator = document.getElementById('statusIndicator');
+
+// --- Initialization ---
+window.addEventListener('load', init);
+
 async function init() {
-    input.disabled = true;
-    await loadData();
-    playIntro();
-    buildPages();
+    await playBootSequence();
+    showWelcome();
+    state.isBooting = false;
+    userInput.disabled = false;
+    userInput.focus();
+    setupEventListeners();
 }
 
-// Load all JSON data
-async function loadData() {
-    try {
-        const [about, hobbies, workouts] = await Promise.all([
-            fetch('data/about.json').then(r => r.json()),
-            fetch('data/hobbies.json').then(r => r.json()),
-            fetch('data/workouts.json').then(r => r.json())
-        ]);
+// --- Boot Sequence ---
+async function playBootSequence() {
+    const steps = [
+        { text: '[system] Initializing openpage terminal v2.0...', delay: 400 },
+        { text: '[system] Loading knowledge bases...  ', delay: 300, append: 'done' },
+        { text: '[system] Connecting to AI backend...  ', delay: 500, append: 'done' },
+        { text: '[system] System ready.', delay: 200 },
+    ];
 
-        aboutData = about;
-        hobbiesData = hobbies;
-        workoutsData = workouts;
-    } catch (error) {
-        console.error('Error loading data:', error);
-        // Use fallback data if fetch fails
-        aboutData = { personal: {}, bio: '', skills: [] };
-        hobbiesData = { projects: [], funActivities: [] };
-        workoutsData = { weekStats: {}, personalRecords: [], benchmarkWods: [] };
-    }
-}
-
-// Build full-screen pages
-function buildPages() {
-    buildAboutPage();
-    buildHobbiesPage();
-    buildWorkoutsPage();
-}
-
-// Build About page
-function buildAboutPage() {
-    if (!aboutData) return;
-
-    const { personal, bio, skills } = aboutData;
-
-    // Build skills HTML
-    const skillsHTML = skills.map(skill => `
-        <div class="graph-bar">
-            <span class="graph-label">${skill.name}</span>
-            <div class="graph-bar-container">
-                <div class="graph-bar-fill" style="width: ${skill.level}%">
-                    <span class="graph-value">${skill.label}</span>
-                </div>
-            </div>
-        </div>
-    `).join('');
-
-    aboutView.innerHTML = `
-        <div class="page-header">
-            <div class="page-header-title">📋 ABOUT</div>
-            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
-        </div>
-
-        <div class="page-section">
-            <div class="page-section-title">👤 PERSONAL INFO</div>
-            <div class="info-grid">
-                <div class="info-label">Name:</div>
-                <div class="info-value">${personal.name || 'Not set'}</div>
-
-                <div class="info-label">Location:</div>
-                <div class="info-value">${personal.location || 'Not set'}</div>
-
-                <div class="info-label">Role:</div>
-                <div class="info-value">${personal.role || 'Not set'}</div>
-
-                <div class="info-label">Interests:</div>
-                <div class="info-value">${personal.interests || 'Not set'}</div>
-
-                <div class="info-label">Current Focus:</div>
-                <div class="info-value">${personal.currentFocus || 'Not set'}</div>
-            </div>
-        </div>
-
-        <div class="page-section">
-            <div class="page-section-title">💭 BIO</div>
-            <div class="btop-container">
-                <p style="color: var(--fg); line-height: 1.8; margin: 0;">
-                    ${bio || 'No bio available.'}
-                </p>
-            </div>
-        </div>
-
-        <div class="page-section">
-            <div class="page-section-title">🛠️ SKILLS</div>
-            <div class="btop-container">
-                <div class="graph">
-                    ${skillsHTML}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Build Hobbies page
-function buildHobbiesPage() {
-    if (!hobbiesData) return;
-
-    const { projects, funActivities } = hobbiesData;
-
-    // Build project cards HTML
-    const projectsHTML = projects.map(project => `
-        <div class="card">
-            <div class="card-title">${project.title}</div>
-            <div class="card-description">
-                ${project.description}
-            </div>
-            <div class="card-tags">
-                ${project.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-            </div>
-        </div>
-    `).join('');
-
-    // Build fun activities HTML
-    const activitiesHTML = funActivities.map(activity => `
-        <div>
-            <div style="color: var(--cyan); font-weight: bold; margin-bottom: 5px;">${activity.icon} ${activity.name}</div>
-            <div style="color: var(--fg); font-size: 13px;">${activity.description}</div>
-        </div>
-    `).join('');
-
-    hobbiesView.innerHTML = `
-        <div class="page-header">
-            <div class="page-header-title">🎨 HOBBIES & PROJECTS</div>
-            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
-        </div>
-
-        <div class="page-section">
-            <div class="page-section-title">⚙️ CURRENT PROJECTS</div>
-            ${projectsHTML}
-        </div>
-
-        <div class="page-section">
-            <div class="page-section-title">🎮 FOR FUN</div>
-            <div class="btop-container">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    ${activitiesHTML}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Build Workouts page
-function buildWorkoutsPage() {
-    if (!workoutsData) return;
-
-    const { weekStats, personalRecords, benchmarkWods } = workoutsData;
-
-    // Build personal records HTML
-    const prsHTML = personalRecords.map(pr => `
-        <div class="graph-bar">
-            <span class="graph-label">${pr.exercise}</span>
-            <div class="graph-bar-container">
-                <div class="graph-bar-fill" style="width: ${pr.percentage}%">
-                    <span class="graph-value">${pr.weight} ${pr.unit}</span>
-                </div>
-            </div>
-        </div>
-    `).join('');
-
-    // Build benchmark WODs HTML
-    const wodsHTML = benchmarkWods.map(wod => `
-        <div class="graph-bar">
-            <span class="graph-label">${wod.name}</span>
-            <div class="graph-bar-container">
-                <div class="graph-bar-fill" style="width: ${wod.percentage}%">
-                    <span class="graph-value">${wod.time}</span>
-                </div>
-            </div>
-        </div>
-    `).join('');
-
-    workoutsView.innerHTML = `
-        <div class="page-header">
-            <div class="page-header-title">💪 CROSSFIT STATS</div>
-            <div class="page-header-hint">Press <span class="key">ESC</span> to return</div>
-        </div>
-
-        <pre class="ascii-art" style="margin-bottom: 20px;">${CROSSFIT_ASCII}</pre>
-
-        <div class="page-section">
-            <div class="page-section-title">📊 THIS WEEK'S STATS</div>
-            <div class="btop-container">
-                <div class="btop-row">
-                    <span class="btop-label">Workouts Completed:</span>
-                    <span class="btop-value">${weekStats.workoutsCompleted || 'N/A'}</span>
-                </div>
-                <div class="btop-row">
-                    <span class="btop-label">Total Volume:</span>
-                    <span class="btop-value">${weekStats.totalVolume || 'N/A'}</span>
-                </div>
-                <div class="btop-row">
-                    <span class="btop-label">Avg Heart Rate:</span>
-                    <span class="btop-value">${weekStats.avgHeartRate || 'N/A'}</span>
-                </div>
-                <div class="btop-row">
-                    <span class="btop-label">Calories Burned:</span>
-                    <span class="btop-value">${weekStats.caloriesBurned || 'N/A'}</span>
-                </div>
-                <div class="btop-row">
-                    <span class="btop-label">Weekly Consistency:</span>
-                    <span class="btop-value" style="color: var(--green);">${weekStats.consistency || 0}%</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="page-section">
-            <div class="page-section-title">🏋️ PERSONAL RECORDS (1RM)</div>
-            <div class="btop-container">
-                <div class="graph">
-                    ${prsHTML}
-                </div>
-            </div>
-        </div>
-
-        <div class="page-section">
-            <div class="page-section-title">⏱️ BENCHMARK WOD TIMES</div>
-            <div class="btop-container">
-                <div class="graph">
-                    ${wodsHTML}
-                </div>
-            </div>
-        </div>
-
-        <div style="text-align: center; color: var(--white); font-size: 12px; margin-top: 20px;">
-            Last updated: ${new Date(workoutsData.lastUpdated).toLocaleDateString()}
-        </div>
-    `;
-}
-
-// Switch views
-function switchView(viewName) {
-    // Hide all views
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-
-    // Update current view
-    currentView = viewName;
-
-    // Show the requested view and update title
-    switch(viewName) {
-        case 'welcome':
-            welcomeView.classList.add('active');
-            terminalTitle.textContent = 'user@openpage ~ %';
-            input.focus();
-            break;
-        case 'about':
-            aboutView.classList.add('active');
-            terminalTitle.textContent = 'user@openpage ~/about %';
-            break;
-        case 'hobbies':
-            hobbiesView.classList.add('active');
-            terminalTitle.textContent = 'user@openpage ~/hobbies %';
-            break;
-        case 'workouts':
-            workoutsView.classList.add('active');
-            terminalTitle.textContent = 'user@openpage ~/workouts %';
-            break;
-    }
-}
-
-// Intro sequence
-async function playIntro() {
-    await typeText('[SYSTEM] Initializing OpenPage v2.0...', 'boot-text', 30);
-    await sleep(300);
-    await typeText('[  OK  ] Starting terminal interface...', 'boot-ok', 20);
-    await sleep(200);
-    await typeText('[  OK  ] Loading user profile...', 'boot-ok', 20);
-    await sleep(200);
-    await typeText('[  OK  ] Establishing connection...', 'boot-ok', 20);
-    await sleep(400);
-    await typeText('[INFO] System ready. Welcome!', 'boot-info', 30);
-    await sleep(500);
-
-    isIntroPlaying = false;
-    input.disabled = false;
-    showBanner();
-    input.focus();
-}
-
-// Type text with animation
-function typeText(text, className = '', speed = 30) {
-    return new Promise(resolve => {
+    for (const step of steps) {
         const line = document.createElement('div');
-        line.className = `output-line ${className}`;
-        output.appendChild(line);
+        line.className = 'boot-line';
+        terminalBody.appendChild(line);
 
-        let i = 0;
-        const interval = setInterval(() => {
-            if (i < text.length) {
-                line.textContent += text[i];
-                i++;
-                scrollToBottom();
-            } else {
-                clearInterval(interval);
-                resolve();
-            }
-        }, speed);
+        // Type main text
+        for (let i = 0; i < step.text.length; i++) {
+            line.textContent += step.text[i];
+            await sleep(CONFIG.bootSpeed);
+        }
+
+        if (step.append) {
+            await sleep(step.delay);
+            const doneSpan = document.createElement('span');
+            doneSpan.className = 'done';
+            doneSpan.textContent = step.append;
+            line.appendChild(doneSpan);
+        }
+
+        await sleep(step.delay);
+        scrollToBottom();
+    }
+
+    await sleep(300);
+}
+
+// --- Welcome Message ---
+function showWelcome() {
+    // ASCII Banner
+    const banner = document.createElement('pre');
+    banner.className = 'ascii-banner';
+    banner.textContent =
+`  ___  ___  ___ _  _ ___  _   ___ ___
+ / _ \\| _ \\| __| \\| | _ \\/_\\ / __| __|
+| (_) |  _/| _|| .\` |  _/ _ \\ (_ | _|
+ \\___/|_|  |___|_|\\_|_|/_/ \\_\\___|___|`;
+    terminalBody.appendChild(banner);
+
+    // Welcome text
+    const welcome = document.createElement('div');
+    welcome.className = 'welcome-text';
+    welcome.innerHTML = `Welcome! I'm an AI assistant that knows all about this site's creator.\nAsk me about their <span style="color:var(--cyan)">skills</span>, <span style="color:var(--green)">workouts</span>, <span style="color:var(--magenta)">projects</span>, or <span style="color:var(--yellow)">blog posts</span>.`;
+    terminalBody.appendChild(welcome);
+
+    // Suggested prompts
+    showSuggestedPrompts();
+
+    scrollToBottom();
+}
+
+function showSuggestedPrompts() {
+    const existing = terminalBody.querySelector('.suggested-prompts');
+    if (existing) existing.remove();
+
+    const suggestions = [
+        'What are your top skills?',
+        'How have workouts been going?',
+        'Tell me about your projects',
+        'What\'s your tech stack?',
+    ];
+
+    const container = document.createElement('div');
+    container.className = 'suggested-prompts';
+
+    suggestions.forEach(text => {
+        const btn = document.createElement('button');
+        btn.className = 'suggested-prompt';
+        btn.textContent = `$ ${text.toLowerCase()}`;
+        btn.addEventListener('click', () => {
+            container.remove();
+            sendMessage(text);
+        });
+        container.appendChild(btn);
+    });
+
+    terminalBody.appendChild(container);
+    scrollToBottom();
+}
+
+// --- Event Listeners ---
+function setupEventListeners() {
+    userInput.addEventListener('keydown', handleInputKeydown);
+
+    // Keep focus on input
+    document.addEventListener('click', (e) => {
+        if (!state.isBooting && !state.isProcessing && !e.target.closest('.suggested-prompt')) {
+            userInput.focus();
+        }
     });
 }
 
-// Sleep utility
+function handleInputKeydown(e) {
+    if (state.isBooting) { e.preventDefault(); return; }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const text = userInput.value.trim();
+        if (text && !state.isProcessing) {
+            // Remove suggested prompts on first message
+            const prompts = terminalBody.querySelector('.suggested-prompts');
+            if (prompts) prompts.remove();
+            sendMessage(text);
+        }
+    }
+
+    // Command history navigation
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (state.historyIndex > 0) {
+            state.historyIndex--;
+            userInput.value = state.commandHistory[state.historyIndex];
+        }
+    }
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (state.historyIndex < state.commandHistory.length - 1) {
+            state.historyIndex++;
+            userInput.value = state.commandHistory[state.historyIndex];
+        } else {
+            state.historyIndex = state.commandHistory.length;
+            userInput.value = '';
+        }
+    }
+}
+
+// --- Send Message ---
+async function sendMessage(text) {
+    state.isProcessing = true;
+    setStatus('processing', 'thinking...');
+    userInput.value = '';
+    userInput.disabled = true;
+
+    // Add to history
+    state.commandHistory.push(text);
+    state.historyIndex = state.commandHistory.length;
+
+    // Render user message
+    renderUserMessage(text);
+
+    // Store in conversation
+    state.messages.push({ role: 'user', content: text });
+
+    // Show typing indicator
+    const typingEl = showTypingIndicator();
+
+    // Small delay for feel
+    await sleep(400);
+
+    try {
+        let response;
+        if (CONFIG.mockMode) {
+            response = await getMockResponse(text);
+        } else {
+            response = await callApi(text);
+        }
+
+        // Remove typing indicator
+        typingEl.remove();
+
+        // Render bot response
+        await renderBotResponse(response);
+
+        // Store in conversation
+        state.messages.push({ role: 'assistant', content: response });
+
+    } catch (err) {
+        typingEl.remove();
+        renderErrorMessage('Something went wrong. Please try again.');
+        console.error('Chat error:', err);
+    }
+
+    state.isProcessing = false;
+    setStatus('ready', 'ready');
+    userInput.disabled = false;
+    userInput.focus();
+}
+
+// --- Render Messages ---
+function renderUserMessage(text) {
+    const msg = document.createElement('div');
+    msg.className = 'msg-user';
+    msg.innerHTML = `<span class="msg-user-prompt">$ </span><span class="msg-user-text">${escapeHtml(text)}</span>`;
+    terminalBody.appendChild(msg);
+    scrollToBottom();
+}
+
+async function renderBotResponse(response) {
+    const msg = document.createElement('div');
+    msg.className = 'msg-bot';
+    const content = document.createElement('div');
+    content.className = 'msg-bot-content';
+    msg.appendChild(content);
+    terminalBody.appendChild(msg);
+
+    for (const part of response.parts) {
+        if (part.type === 'text') {
+            await streamTextInto(content, part.content);
+        } else if (part.type === 'viz') {
+            const vizEl = renderVisualization(part);
+            content.appendChild(vizEl);
+            scrollToBottom();
+            await sleep(100); // Brief pause after viz
+        }
+    }
+
+    scrollToBottom();
+}
+
+function renderErrorMessage(text) {
+    const msg = document.createElement('div');
+    msg.className = 'msg-bot';
+    msg.innerHTML = `<div class="msg-bot-content" style="color:var(--red)">${escapeHtml(text)}</div>`;
+    terminalBody.appendChild(msg);
+    scrollToBottom();
+}
+
+function showTypingIndicator() {
+    const el = document.createElement('div');
+    el.className = 'typing-indicator';
+    el.innerHTML = `
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <span>thinking...</span>
+    `;
+    terminalBody.appendChild(el);
+    scrollToBottom();
+    return el;
+}
+
+// --- Stream Text ---
+async function streamTextInto(container, text) {
+    // Parse text into segments (plain text and line breaks)
+    const lines = text.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+        if (i > 0) {
+            container.appendChild(document.createElement('br'));
+        }
+
+        const line = lines[i];
+        if (!line) continue;
+
+        // Create a span for this line's text
+        const span = document.createElement('span');
+        container.appendChild(span);
+
+        // Add cursor
+        const cursor = document.createElement('span');
+        cursor.className = 'streaming-cursor';
+        container.appendChild(cursor);
+
+        // Stream characters
+        for (let j = 0; j < line.length; j++) {
+            span.textContent += line[j];
+            scrollToBottom();
+            await sleep(CONFIG.streamSpeed);
+        }
+
+        // Remove cursor
+        cursor.remove();
+    }
+}
+
+// --- Visualization Renderer ---
+function renderVisualization(part) {
+    const viz = document.createElement('div');
+    viz.className = 'viz';
+
+    const header = document.createElement('div');
+    header.className = 'viz-header';
+    header.textContent = part.title || '';
+    viz.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'viz-body';
+    viz.appendChild(body);
+
+    switch (part.vizType) {
+        case 'stat_grid':
+            body.appendChild(buildStatGrid(part.data));
+            break;
+        case 'progress_bars':
+            body.appendChild(buildProgressBars(part.data, part.fillClass));
+            break;
+        case 'table':
+            body.appendChild(buildTable(part.columns, part.data));
+            break;
+        case 'cards':
+            body.appendChild(buildCards(part.data));
+            break;
+        case 'bar_chart':
+            body.appendChild(buildBarChart(part.data, part.colorClass));
+            break;
+        case 'timeline':
+            body.appendChild(buildTimeline(part.data));
+            break;
+        default:
+            body.textContent = JSON.stringify(part.data);
+    }
+
+    return viz;
+}
+
+// --- Visualization Builders ---
+
+function buildStatGrid(items) {
+    const grid = document.createElement('div');
+    grid.className = 'stat-grid';
+
+    items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'stat-item';
+        el.innerHTML = `
+            <span class="stat-label">${escapeHtml(item.label)}</span>
+            <span class="stat-value ${item.highlight || ''}">${escapeHtml(item.value)}</span>
+        `;
+        grid.appendChild(el);
+    });
+
+    return grid;
+}
+
+function buildProgressBars(items, fillClass) {
+    const list = document.createElement('div');
+    list.className = 'progress-list';
+
+    items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'progress-item';
+        const cls = item.fillClass || fillClass || '';
+        el.innerHTML = `
+            <span class="progress-name">${escapeHtml(item.name)}</span>
+            <div class="progress-track">
+                <div class="progress-fill ${cls}" style="width: 0%"></div>
+            </div>
+            <span class="progress-pct">${item.pct}%</span>
+        `;
+        list.appendChild(el);
+
+        // Animate fill after append
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                el.querySelector('.progress-fill').style.width = item.pct + '%';
+            });
+        });
+    });
+
+    return list;
+}
+
+function buildTable(columns, rows) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'viz-table';
+
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+
+    columns.forEach(col => {
+        const th = document.createElement('th');
+        th.textContent = col;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+        row.forEach((cell, i) => {
+            const td = document.createElement('td');
+            if (typeof cell === 'object' && cell.value !== undefined) {
+                td.textContent = cell.value;
+                if (cell.highlight) td.className = 'cell-highlight';
+            } else {
+                td.textContent = cell;
+            }
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+
+    return wrapper;
+}
+
+function buildCards(items) {
+    const grid = document.createElement('div');
+    grid.className = 'card-grid';
+
+    items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="card-title">${escapeHtml(item.title)}</div>
+            <div class="card-desc">${escapeHtml(item.description)}</div>
+            ${item.tags ? `<div class="card-tags">${item.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        `;
+        grid.appendChild(card);
+    });
+
+    return grid;
+}
+
+function buildBarChart(items, colorClass) {
+    const chart = document.createElement('div');
+    chart.className = 'bar-chart';
+
+    items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        const cls = item.colorClass || colorClass || 'bar-cyan';
+        row.innerHTML = `
+            <span class="bar-label">${escapeHtml(item.label)}</span>
+            <div class="bar-track">
+                <div class="bar-fill ${cls}" style="width: 0%">
+                    ${item.barLabel ? `<span class="bar-fill-value">${escapeHtml(item.barLabel)}</span>` : ''}
+                </div>
+            </div>
+            <span class="bar-value">${escapeHtml(String(item.value))}</span>
+        `;
+        chart.appendChild(row);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                row.querySelector('.bar-fill').style.width = item.pct + '%';
+            });
+        });
+    });
+
+    return chart;
+}
+
+function buildTimeline(items) {
+    const timeline = document.createElement('div');
+    timeline.className = 'timeline';
+
+    items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'timeline-item';
+        el.innerHTML = `
+            <span class="timeline-date">${escapeHtml(item.date)}</span>
+            <div class="timeline-marker">
+                <div class="timeline-dot"></div>
+                <div class="timeline-line"></div>
+            </div>
+            <div>
+                <div class="timeline-content-title">${escapeHtml(item.title)}</div>
+                ${item.text ? `<div class="timeline-content-text">${escapeHtml(item.text)}</div>` : ''}
+            </div>
+        `;
+        timeline.appendChild(el);
+    });
+
+    return timeline;
+}
+
+// --- Status Indicator ---
+function setStatus(state, text) {
+    const dot = statusIndicator.querySelector('.status-dot');
+    const label = statusIndicator.querySelector('.status-text');
+    dot.className = 'status-dot';
+    if (state === 'processing') dot.classList.add('processing');
+    if (state === 'error') dot.classList.add('error');
+    label.textContent = text;
+}
+
+// --- API Call (for Phase 2+) ---
+async function callApi(message) {
+    const res = await fetch(CONFIG.apiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            message: message,
+            session_id: state.sessionId,
+            history: state.messages.slice(-10), // Last 10 messages for context
+        }),
+    });
+
+    if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+    }
+
+    return await res.json();
+}
+
+// --- Mock API ---
+async function getMockResponse(message) {
+    const lower = message.toLowerCase();
+
+    // Simulate network delay
+    await sleep(600 + Math.random() * 800);
+
+    // Route to mock handlers based on keywords
+    if (matchesAny(lower, ['workout', 'crossfit', 'gym', 'fitness', 'exercise', 'wod', 'lift', 'squat', 'deadlift', 'bench'])) {
+        return mockWorkoutResponse();
+    }
+
+    if (matchesAny(lower, ['skill', 'tech', 'stack', 'language', 'framework', 'experience', 'resume', 'qualified', 'know'])) {
+        return mockSkillsResponse();
+    }
+
+    if (matchesAny(lower, ['project', 'built', 'portfolio', 'work', 'hobby', 'hobbies', 'building'])) {
+        return mockProjectsResponse();
+    }
+
+    if (matchesAny(lower, ['blog', 'write', 'article', 'post', 'written', 'read'])) {
+        return mockBlogResponse();
+    }
+
+    if (matchesAny(lower, ['about', 'who', 'tell me about', 'yourself', 'introduction', 'bio'])) {
+        return mockAboutResponse();
+    }
+
+    if (matchesAny(lower, ['hello', 'hi', 'hey', 'sup', 'what\'s up', 'greet'])) {
+        return mockGreetingResponse();
+    }
+
+    return mockDefaultResponse();
+}
+
+function matchesAny(text, keywords) {
+    return keywords.some(kw => text.includes(kw));
+}
+
+// --- Mock Response Builders ---
+
+function mockWorkoutResponse() {
+    return {
+        parts: [
+            { type: 'text', content: 'Here\'s a snapshot of recent workout activity:' },
+            {
+                type: 'viz', vizType: 'stat_grid', title: 'Weekly Overview',
+                data: [
+                    { label: 'Workouts', value: '5 / 6 days', highlight: 'highlight-green' },
+                    { label: 'Total Volume', value: '12,450 lbs' },
+                    { label: 'Avg Heart Rate', value: '156 bpm', highlight: 'highlight-yellow' },
+                    { label: 'Calories', value: '3,240 kcal' },
+                    { label: 'Consistency', value: '83%', highlight: 'highlight-green' },
+                    { label: 'Streak', value: '3 weeks' },
+                ],
+            },
+            { type: 'text', content: '\nPersonal records are looking strong across the big lifts:' },
+            {
+                type: 'viz', vizType: 'progress_bars', title: 'Personal Records (1RM)',
+                data: [
+                    { name: 'Back Squat', pct: 79 },
+                    { name: 'Deadlift', pct: 81 },
+                    { name: 'Bench Press', pct: 70 },
+                    { name: 'Clean & Jerk', pct: 75 },
+                    { name: 'Snatch', pct: 74 },
+                ],
+            },
+            {
+                type: 'viz', vizType: 'table', title: 'Benchmark WOD Times',
+                columns: ['WOD', 'Time', 'Rx'],
+                data: [
+                    ['Fran', '4:32', { value: 'Yes', highlight: true }],
+                    ['Grace', '3:15', { value: 'Yes', highlight: true }],
+                    ['Murph', '38:45', { value: 'Yes', highlight: true }],
+                    ['Helen', '9:12', { value: 'Yes', highlight: true }],
+                ],
+            },
+            { type: 'text', content: 'Consistency has been solid. The deadlift PR is the most recent — hit 405 lbs last month.' },
+        ],
+    };
+}
+
+function mockSkillsResponse() {
+    return {
+        parts: [
+            { type: 'text', content: 'Here\'s a breakdown of the technical skill set:' },
+            {
+                type: 'viz', vizType: 'progress_bars', title: 'Core Skills', fillClass: 'fill-magenta',
+                data: [
+                    { name: 'Python', pct: 92 },
+                    { name: 'JavaScript/TS', pct: 88 },
+                    { name: 'AWS', pct: 85 },
+                    { name: 'React', pct: 80 },
+                    { name: 'SQL/Databases', pct: 82 },
+                    { name: 'DevOps/CI-CD', pct: 78 },
+                    { name: 'AI/ML', pct: 75 },
+                ],
+            },
+            {
+                type: 'viz', vizType: 'bar_chart', title: 'AWS Services Proficiency',
+                data: [
+                    { label: 'Lambda', pct: 90, value: 'Expert', colorClass: 'bar-orange' },
+                    { label: 'Bedrock', pct: 80, value: 'Advanced', colorClass: 'bar-orange' },
+                    { label: 'API Gateway', pct: 85, value: 'Advanced', colorClass: 'bar-orange' },
+                    { label: 'S3/CloudFront', pct: 92, value: 'Expert', colorClass: 'bar-orange' },
+                    { label: 'DynamoDB', pct: 78, value: 'Proficient', colorClass: 'bar-orange' },
+                    { label: 'RDS', pct: 75, value: 'Proficient', colorClass: 'bar-orange' },
+                ],
+            },
+            { type: 'text', content: 'The focus lately has been on AI/ML integration, especially connecting LLMs to real data sources via Bedrock Agents. This site is actually a live example of that architecture.' },
+        ],
+    };
+}
+
+function mockProjectsResponse() {
+    return {
+        parts: [
+            { type: 'text', content: 'Here are the current projects and interests:' },
+            {
+                type: 'viz', vizType: 'cards', title: 'Projects',
+                data: [
+                    {
+                        title: 'AI Terminal Portfolio',
+                        description: 'This site! A terminal-style personal page powered by AWS Bedrock. Visitors chat with an AI that pulls real data from knowledge bases and databases.',
+                        tags: ['AWS Bedrock', 'Lambda', 'Vanilla JS', 'PostgreSQL'],
+                    },
+                    {
+                        title: 'Workout Data Pipeline',
+                        description: 'Automated pipeline that takes raw SugarWOD exports, cleans the data, and stores it in PostgreSQL. Powers the workout analytics on this site.',
+                        tags: ['Python', 'PostgreSQL', 'ETL', 'Data Engineering'],
+                    },
+                    {
+                        title: 'Open Source Contributions',
+                        description: 'Contributing to the developer community through open source projects, bug fixes, and documentation improvements.',
+                        tags: ['GitHub', 'Collaboration', 'Community'],
+                    },
+                ],
+            },
+            { type: 'text', content: 'The AI terminal project is the main focus right now — building a conversational portfolio that showcases real engineering skills, not just a static resume.' },
+        ],
+    };
+}
+
+function mockBlogResponse() {
+    return {
+        parts: [
+            { type: 'text', content: 'Here are the latest blog entries:' },
+            {
+                type: 'viz', vizType: 'timeline', title: 'Recent Posts',
+                data: [
+                    { date: 'Mar 2026', title: 'Building an AI-Powered Portfolio with AWS Bedrock', text: 'How I connected an LLM to my personal data sources for a conversational portfolio experience.' },
+                    { date: 'Feb 2026', title: 'From SugarWOD to PostgreSQL: A Workout Data Pipeline', text: 'Cleaning and structuring CrossFit workout data for analytics and AI consumption.' },
+                    { date: 'Jan 2026', title: 'Why Your Terminal Should Be Beautiful', text: 'Thoughts on developer experience, terminal customization, and the Omarchy theme.' },
+                ],
+            },
+            { type: 'text', content: 'Blog content is stored in S3 and indexed via a Bedrock Knowledge Base, so you can ask me specific questions about any post and I\'ll pull relevant details.' },
+        ],
+    };
+}
+
+function mockAboutResponse() {
+    return {
+        parts: [
+            { type: 'text', content: 'Here\'s a quick overview:' },
+            {
+                type: 'viz', vizType: 'stat_grid', title: 'Profile',
+                data: [
+                    { label: 'Role', value: 'Developer & Creator' },
+                    { label: 'Focus', value: 'AI + Cloud Engineering' },
+                    { label: 'Fitness', value: 'CrossFit Athlete' },
+                    { label: 'Interests', value: 'Building Cool Stuff' },
+                ],
+            },
+            { type: 'text', content: 'A developer passionate about building things that sit at the intersection of AI, cloud infrastructure, and great user experience. This terminal is a working example — it\'s not a static page, it\'s a real AI system backed by AWS Bedrock, Lambda, and PostgreSQL.\n\nOutside of code, CrossFit is a big part of life. The workout data you can ask about is pulled from a real database, not hardcoded.\n\nFeel free to dig into anything — skills, projects, workouts, blog posts, or just ask whatever comes to mind.' },
+        ],
+    };
+}
+
+function mockGreetingResponse() {
+    return {
+        parts: [
+            { type: 'text', content: 'Hey! Welcome to the terminal. I\'m an AI assistant connected to real data about this site\'s creator — workouts, skills, projects, blog posts, and more.\n\nTry asking something like:' },
+            {
+                type: 'viz', vizType: 'table', title: 'Try Asking',
+                columns: ['Topic', 'Example Question'],
+                data: [
+                    [{ value: 'Workouts', highlight: true }, 'How have workouts been going?'],
+                    [{ value: 'Skills', highlight: true }, 'What\'s your tech stack?'],
+                    [{ value: 'Projects', highlight: true }, 'What are you building?'],
+                    [{ value: 'Blog', highlight: true }, 'What have you written about?'],
+                    [{ value: 'About', highlight: true }, 'Tell me about yourself'],
+                ],
+            },
+            { type: 'text', content: 'Or just ask whatever you\'re curious about — I\'ll do my best.' },
+        ],
+    };
+}
+
+function mockDefaultResponse() {
+    const responses = [
+        {
+            parts: [
+                { type: 'text', content: 'I\'m not sure I have specific data on that, but I can tell you a lot about:\n\n- Technical skills and experience\n- CrossFit workout stats and progress\n- Current projects and what\'s being built\n- Blog posts and writing\n- General background and interests\n\nWhat would you like to explore?' },
+            ],
+        },
+        {
+            parts: [
+                { type: 'text', content: 'Interesting question! I\'m best at answering things related to the creator\'s professional skills, workout data, projects, and blog content. Those are the areas where I have access to real data.\n\nWant to try one of those topics?' },
+            ],
+        },
+    ];
+
+    return responses[Math.floor(Math.random() * responses.length)];
+}
+
+// --- Utilities ---
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Add output line
-function addOutput(text, className = '') {
-    const line = document.createElement('div');
-    line.className = `output-line ${className}`;
-    line.innerHTML = text;
-    output.appendChild(line);
-    scrollToBottom();
-}
-
-// Add command to output
-function addCommand(cmd) {
-    const line = document.createElement('div');
-    line.className = 'command-line';
-    line.innerHTML = `<span class="prompt">${prompt.textContent}</span><span class="command">${escapeHtml(cmd)}</span>`;
-    output.appendChild(line);
-    scrollToBottom();
-}
-
-// Scroll to bottom
 function scrollToBottom() {
-    welcomeView.scrollTop = welcomeView.scrollHeight;
+    terminalBody.scrollTop = terminalBody.scrollHeight;
 }
 
-// Escape HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
-
-// Show banner
-function showBanner() {
-    addOutput(`<pre class="ascii-art">${ASCII_LOGO}</pre>`);
-    addOutput('');
-    addOutput('Welcome to my interactive terminal page!', 'intro-line');
-    addOutput('Type <span class="highlight">help</span> to see available commands.', 'info');
-    addOutput('');
-}
-
-// Show help
-function showHelp() {
-    addOutput('<div class="section-header">Available Commands</div>');
-    addOutput('');
-
-    Object.keys(commands).forEach(cmd => {
-        addOutput(`  <span class="help-command">${cmd.padEnd(15)}</span><span class="help-description">${commands[cmd].description}</span>`);
-    });
-
-    addOutput('');
-    addOutput('<span class="info">Tip: Use ↑/↓ arrow keys to navigate command history</span>');
-    addOutput('<span class="info">Tip: Use TAB for command completion</span>');
-    addOutput('<span class="info">Tip: Press ESC to return from any page</span>');
-    addOutput('');
-}
-
-// Clear terminal
-function clearTerminal() {
-    output.innerHTML = '';
-}
-
-// Show history
-function showHistory() {
-    if (commandHistory.length === 0) {
-        addOutput('No command history yet.', 'muted');
-        addOutput('');
-        return;
-    }
-
-    addOutput('<div class="section-header">Command History</div>');
-    addOutput('');
-    commandHistory.forEach((cmd, index) => {
-        addOutput(`  <span class="muted">${(index + 1).toString().padStart(3, ' ')}.</span> ${escapeHtml(cmd)}`);
-    });
-    addOutput('');
-}
-
-// Process command
-function processCommand(cmd) {
-    cmd = cmd.trim().toLowerCase();
-
-    if (!cmd) return;
-
-    // Add to history
-    commandHistory.push(cmd);
-    historyIndex = commandHistory.length;
-
-    // Display command
-    addCommand(cmd);
-
-    // Execute command
-    if (commands[cmd]) {
-        commands[cmd].action();
-    } else {
-        addOutput(`Command not found: <span class="error">${escapeHtml(cmd)}</span>`);
-        addOutput('Type <span class="highlight">help</span> for available commands.', 'muted');
-        addOutput('');
-    }
-}
-
-// Tab completion
-function tabComplete(partial) {
-    const matches = Object.keys(commands).filter(cmd => cmd.startsWith(partial));
-
-    if (matches.length === 1) {
-        return matches[0];
-    } else if (matches.length > 1) {
-        addCommand(partial);
-        addOutput('');
-        addOutput('Possible completions:', 'info');
-        matches.forEach(match => {
-            addOutput(`  <span class="highlight">${match}</span>`);
-        });
-        addOutput('');
-        return partial;
-    }
-
-    return partial;
-}
-
-// Event listeners
-input.addEventListener('keydown', (e) => {
-    if (isIntroPlaying) {
-        e.preventDefault();
-        return;
-    }
-
-    // Enter key
-    if (e.key === 'Enter') {
-        const cmd = input.value;
-        input.value = '';
-        processCommand(cmd);
-    }
-
-    // Up arrow - previous command
-    else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (historyIndex > 0) {
-            historyIndex--;
-            input.value = commandHistory[historyIndex];
-        }
-    }
-
-    // Down arrow - next command
-    else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        if (historyIndex < commandHistory.length - 1) {
-            historyIndex++;
-            input.value = commandHistory[historyIndex];
-        } else {
-            historyIndex = commandHistory.length;
-            input.value = '';
-        }
-    }
-
-    // Tab completion
-    else if (e.key === 'Tab') {
-        e.preventDefault();
-        const partial = input.value.trim().toLowerCase();
-        if (partial) {
-            const completed = tabComplete(partial);
-            input.value = completed;
-        }
-    }
-});
-
-// Global escape key handler
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && currentView !== 'welcome' && !isIntroPlaying) {
-        switchView('welcome');
-    }
-});
-
-// Keep focus on input when on welcome view
-document.addEventListener('click', () => {
-    if (!isIntroPlaying && currentView === 'welcome') {
-        input.focus();
-    }
-});
-
-// Initialize on load
-window.addEventListener('load', init);
