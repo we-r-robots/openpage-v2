@@ -530,7 +530,14 @@ async function callApi(message) {
         throw new Error(`API error: ${res.status}`);
     }
 
-    return await res.json();
+    const data = await res.json();
+
+    // Transform flat API response into the parts format the renderer expects
+    return {
+        parts: [
+            { type: 'text', content: data.response }
+        ]
+    };
 }
 
 // --- Mock API ---
