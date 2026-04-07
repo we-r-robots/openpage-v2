@@ -4,8 +4,8 @@
 
 // --- Configuration ---
 const CONFIG = {
-    apiEndpoint: '',       // Set to API Gateway URL when backend is ready
-    mockMode: true,        // Use mock responses until backend is live
+    apiEndpoint: 'https://vacegsbtm7.execute-api.us-east-2.amazonaws.com/v1/chat',
+    mockMode: false,       // Use mock responses until backend is live
     streamSpeed: 18,       // ms per character when streaming text
     bootSpeed: 25,         // ms per character during boot sequence
 };
